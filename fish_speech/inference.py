@@ -952,9 +952,9 @@ def launch_thread_safe_queue_agent(
     return input_queue, tokenizer, config
 
 
-def generate_sample(text: str, model, decode_one_token, voice_model_file: str, voice_model_text: str, device: str):
-    prompt_tokens: Path = Path(voice_model_file)
-    prompt_text: str = voice_model_text
+def generate_sample(text: str, model, decode_one_token, voice_prompt_tokens, voice_prompt_text: str, device: str):
+    prompt_tokens = voice_prompt_tokens
+    prompt_text: str = voice_prompt_text
     num_samples: int = 1
     max_new_tokens: int = 0
     top_p: int = 0.7
@@ -974,9 +974,6 @@ def generate_sample(text: str, model, decode_one_token, voice_model_file: str, v
     
     if torch.cuda.is_available():
         torch.cuda.synchronize()
-
-    if prompt_tokens is not None:
-        prompt_tokens = torch.from_numpy(np.load(prompt_tokens)).to(device)
 
     torch.manual_seed(seed)
 
@@ -1071,13 +1068,17 @@ def load_tts_models(model_path: str, generator_checkpoint_path: str, config_name
     return voice_model, model, decode_one_token
 
 
-def generate_audio(text: str, tts_model, decode_one_token, voice_model, voice_file: str, voice_text: str, device: str, output_file: str):
+def load_voice_model(voice_path: str, device: str):
+    return torch.from_numpy(np.load(Path(voice_path))).to(device)
+
+
+def generate_audio(text: str, tts_model, decode_one_token, voice_model, voice, voice_text: str, device: str, output_file: str):
     sample_indices = generate_sample(
         text=text,
         model=tts_model,
         decode_one_token=decode_one_token,
-        voice_model_file=voice_file,
-        voice_model_text=voice_text,
+        voice_prompt_tokens=voice,
+        voice_prompt_text=voice_text,
         device=device
     )
     convert_to_speech(model=voice_model, indices=sample_indices, output_path=output_file, device=device)
