@@ -17,16 +17,16 @@ import torch._inductor.config
 from loguru import logger
 from tqdm import tqdm
 from transformers import AutoTokenizer
-from conversation import (
+from .conversation import (
     CODEBOOK_PAD_TOKEN_ID,
     Conversation,
     Message,
     TextPart,
     VQPart,
 )
-from models.text2semantic.llama import BaseModelArgs
-from text import clean_text, split_text
-from tokenizer import IM_END_TOKEN
+from .models.text2semantic.llama import BaseModelArgs
+from .text import clean_text, split_text
+from .tokenizer import IM_END_TOKEN
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch._inductor.config.coordinate_descent_tuning = True
@@ -37,7 +37,7 @@ if hasattr(torch._inductor.config, "fx_graph_cache"):
     torch._inductor.config.fx_graph_cache = True
 
 from torch.nn.attention import SDPBackend, sdpa_kernel
-from models.text2semantic.llama import (
+from .models.text2semantic.llama import (
     BaseTransformer,
     DualARTransformer,
     NaiveTransformer,
