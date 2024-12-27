@@ -1068,7 +1068,7 @@ def load_tts_models(model_path: str, generator_checkpoint_path: str, config_name
     return voice_model, model, decode_one_token
 
 
-def load_voice(voice_path: str, device: str):
+def get_voice_prompts(voice_path: str, device: str):
     return torch.from_numpy(np.load(Path(voice_path))).to(device)
 
 
