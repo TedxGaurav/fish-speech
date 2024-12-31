@@ -1,5 +1,6 @@
 import os
 import queue
+import pydub
 import threading
 import hydra
 import torchaudio
@@ -1050,7 +1051,7 @@ def generate_voice_model(model, input_path: str, output_path: str, device: str) 
 
 
 @torch.no_grad()
-def convert_to_speech(model, indices, output_path, device):
+def convert_to_speech(model, indices, device):
     indices = torch.from_numpy(indices).to(device).long()
 
     # Restore
@@ -1059,7 +1060,7 @@ def convert_to_speech(model, indices, output_path, device):
 
     # Save audio
     audio = audio_decoded[0, 0].float().cpu().numpy()
-    sf.write(output_path, audio, model.spec_transform.sample_rate)
+    return audio, model.spec_transform.sample_rate
 
 
 def load_tts_models(model_path: str, generator_checkpoint_path: str, config_name: str, device: str, compile: bool=False):
@@ -1072,7 +1073,7 @@ def get_voice_prompts(voice_path: str, device: str):
     return torch.from_numpy(np.load(Path(voice_path))).to(device)
 
 
-def generate_audio(text: str, tts_model, decode_one_token, voice_model, voice, voice_text: str, device: str, output_file: str):
+def generate_audio(text: str, tts_model, decode_one_token, voice_model, voice, voice_text: str, device: str):
     sample_indices = generate_sample(
         text=text,
         model=tts_model,
@@ -1081,4 +1082,18 @@ def generate_audio(text: str, tts_model, decode_one_token, voice_model, voice, v
         voice_prompt_text=voice_text,
         device=device
     )
-    convert_to_speech(model=voice_model, indices=sample_indices, output_path=output_file, device=device)
+    return convert_to_speech(model=voice_model, indices=sample_indices, device=device)
+
+
+def save_as_wav(audio, sample_rate, output_path):
+    sf.write(output_path, audio, sample_rate)
+
+
+def save_as_mp3(audio, sample_rate, output_path: str, normalized: bool=False):
+    channels = 2 if (audio.ndim == 2 and audio.shape[1] == 2) else 1
+    if normalized:  # normalized array - each item should be a float in [-1, 1)
+        y = np.int16(audio * 2 ** 15)
+    else:
+        y = np.int16(audio)
+    song = pydub.AudioSegment(y.tobytes(), frame_rate=sample_rate, sample_width=2, channels=channels)
+    song.export(output_path, format="mp3", bitrate="320k")
